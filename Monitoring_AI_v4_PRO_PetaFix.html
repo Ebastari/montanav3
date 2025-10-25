@@ -834,4 +834,76 @@ async function uploadLast(){
     await fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify(payload)});
     showToast("Terkirim (no-cors)",1);
   }catch(e){
-    showToast("G
+    showToast("Gagal kirim: "+(e.message||e),0);
+  }
+}
+
+// ============ Export CSV & ZIP ============
+function buildCSV(){
+  let csv = "ID,Tanggal,Lokasi,Tinggi,Koordinat,X,Y,Jenis,Tahun,Pengawas,Vendor,Kesehatan,Akurasi\n";
+  data.forEach(d=>{
+    csv += `"${d.id}","${d.tanggal}","${d.lokasi}",${d.tinggi},"${d.koordinat}",${d.x},${d.y},"${d.jenis}","${d.tahun}","${d.pengawas||''}","${d.vendor||''}","${d.kesehatan}","${d.akurasi}"\n`;
+  });
+  return csv;
+}
+function exportCSV(){
+  if(!data.length){ showToast("Tidak ada data",0); return; }
+  const csv = buildCSV();
+  saveAs(new Blob([csv], {type:'text/csv;charset=utf-8;'}), 'monitoring.csv');
+  showToast("CSV diunduh",1);
+}
+async function exportZIP(filename='monitoring_images.zip'){
+  if(!data.length){ showToast("Tidak ada data",0); return; }
+  const zip = new JSZip();
+  const csv = buildCSV();
+  data.forEach((d,i)=>{
+    if(d.foto){
+      const b64 = (d.foto.split(',')[1]||'');
+      if(b64) zip.file(`images/foto_${i+1}_${safeFilename(d.id)}.jpg`, b64, {base64:true});
+    }
+  });
+  zip.file("data.csv", csv);
+  const blob = await zip.generateAsync({type:'blob'});
+  saveAs(blob, filename);
+  showToast("ZIP diunduh",1);
+}
+async function autoZipNow(){
+  await exportZIP(`monitoring_batch_${Math.ceil(data.length/10)}.zip`);
+}
+
+// ============ Events ============
+btnGPS.addEventListener('click', async ()=>{
+  if(DeviceOrientationEvent && DeviceOrientationEvent.requestPermission){
+    try{ await DeviceOrientationEvent.requestPermission(); }catch(e){}
+  }
+  ambilGPS();
+});
+btnCapture.addEventListener('click', capture);
+document.addEventListener('keydown', (e)=>{ if(e.key==="Enter") capture(); });
+document.getElementById('btnUpload').addEventListener('click', uploadLast);
+document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+document.getElementById('btnExportZIP').addEventListener('click', ()=>exportZIP());
+document.getElementById('dlCSV').addEventListener('click', (e)=>{e.preventDefault(); exportCSV();});
+document.getElementById('dlZIP').addEventListener('click', (e)=>{e.preventDefault(); exportZIP();});
+
+// ============ Init ============
+(async function init(){
+  try{
+    await listCameras();
+    initMap();
+    initCharts();
+    ovCount.textContent = data.length;
+    chipGoal.textContent = `Target ${goalTarget} • ${data.length} selesai`;
+    // Restore Apps Script URL
+    const savedUrl = localStorage.getItem('appsScriptUrl')||"";
+    if(!savedUrl && appsScriptUrlInput.value){ localStorage.setItem('appsScriptUrl', appsScriptUrlInput.value); }
+    else if(savedUrl){ appsScriptUrlInput.value = savedUrl; }
+    appsScriptUrlInput.addEventListener('input', ()=> localStorage.setItem('appsScriptUrl', appsScriptUrlInput.value||""));
+    renderReview();
+  }catch(e){
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
