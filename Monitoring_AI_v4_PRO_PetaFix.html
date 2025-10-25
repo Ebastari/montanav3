@@ -151,7 +151,7 @@
           <div class="row-flex" style="margin-top:10px">
             <div>
               <label>Tahun Tanam</label>
-              <input id="tahun" type="number" min="2017" max="2027" placeholder="2025">
+              <input id="tahun" type="number" min="2000" max="2100" placeholder="2025">
             </div>
             <div>
               <label>Lokasi (lat,lon)</label>
@@ -430,181 +430,53 @@ function refreshMarkers(){
 }
 
 // ============ Charts ============
-function initCharts() {
+function initCharts(){
   const ctxS = document.getElementById('chartScatter');
   const ctxH = document.getElementById('chartHist');
-  const ctxHe = document.getElementById('chartHealth');
-
-  // --- Scatter Chart: Tinggi vs Tahun ---
+  const ctxHe= document.getElementById('chartHealth');
   scatterChart = new Chart(ctxS, {
-    type: 'scatter',
-    data: {
-      datasets: [{
-        label: 'Tinggi vs Tahun Tanam',
-        data: [],
-        pointRadius: 6,
-        borderWidth: 1,
-        borderColor: '#ffffff',
-        backgroundColor: function(context) {
-          const d = context.raw || {};
-          if (d.kesehatan === 'Sehat') return '#22c55e';
-          if (d.kesehatan === 'Merana') return '#f59e0b';
-          if (d.kesehatan === 'Mati') return '#ef4444';
-          return '#3b82f6';
-        }
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: '#e5e7eb' } },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) {
-              const d = ctx.raw || {};
-              return `Tahun: ${Math.round(d.x)} • Tinggi: ${d.y} cm • ${d.kesehatan || '-'}`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          type: 'linear',
-          min: 2017,
-          max: 2027,
-          title: { display: true, text: 'Tahun Tanam', color: '#e5e7eb' },
-          ticks: {
-            stepSize: 1,
-            color: '#9ca3af',
-            font: { size: 12 },
-            callback: function(value) {
-              return Math.round(value);
-            }
-          },
-          grid: { color: 'rgba(255,255,255,0.05)' }
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Tinggi (cm)', color: '#e5e7eb' },
-          ticks: { color: '#9ca3af', stepSize: 50 },
-          grid: { color: 'rgba(255,255,255,0.08)' }
-        }
-      }
-    }
+    type:'scatter',
+    data:{ datasets:[{label:'Tinggi vs Tahun', data:[], pointRadius:4}] },
+    options:{ responsive:true, plugins:{legend:{display:true}}, scales:{ x:{ title:{display:true,text:'Tahun'}}, y:{ title:{display:true,text:'Tinggi (cm)'}}} }
   });
-
-  // --- Histogram Chart: Distribusi Tinggi ---
   histChart = new Chart(ctxH, {
-    type: 'bar',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'Jumlah Tanaman',
-        data: [],
-        backgroundColor: '#3b82f6'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          title: { display: true, text: 'Rentang Tinggi (cm)', color: '#e5e7eb' },
-          ticks: { color: '#9ca3af' },
-          grid: { color: 'rgba(255,255,255,0.05)' }
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Jumlah', color: '#e5e7eb' },
-          ticks: { color: '#9ca3af' },
-          grid: { color: 'rgba(255,255,255,0.08)' }
-        }
-      }
-    }
+    type:'bar',
+    data:{ labels:[], datasets:[{label:'Jumlah', data:[]}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{title:{display:true,text:'Rentang Tinggi (cm)'}}, y:{title:{display:true,text:'Count'}}} }
   });
-
-  // --- Health Chart: Jumlah per Kesehatan ---
   healthChart = new Chart(ctxHe, {
-    type: 'bar',
-    data: {
-      labels: ['Sehat', 'Merana', 'Mati'],
-      datasets: [{
-        label: 'Jumlah Tanaman',
-        data: [0, 0, 0],
-        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444']
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#9ca3af', stepSize: 1 },
-          grid: { color: 'rgba(255,255,255,0.08)' }
-        }
-      }
-    }
+    type:'bar',
+    data:{ labels:['Sehat','Merana','Mati'], datasets:[{label:'Jumlah', data:[0,0,0]}]},
+    options:{ responsive:true, plugins:{legend:{display:false}} }
   });
-
   refreshCharts();
 }
+function refreshCharts(){
+  // Scatter
+  const pts = data.filter(d=>d.tahun && d.tinggi).map(d=>({x: +d.tahun, y: +d.tinggi}));
+  scatterChart.data.datasets[0].data = pts;
+  scatterChart.update();
 
-
-// --- Refresh Charts ---
-function refreshCharts() {
-  // Scatter Chart
-  const pts = data
-    .filter(d => d.tahun && d.tinggi)
-    .map(d => ({
-      x: +d.tahun,
-      y: +d.tinggi,
-      kesehatan: d.kesehatan
-    }));
-
-  if (scatterChart) {
-    scatterChart.data.datasets[0].data = pts;
-    scatterChart.update();
-  }
-
-  // Histogram Chart
-  const heights = data.map(d => +d.tinggi).filter(Boolean);
-  const bins = [0, 50, 100, 150, 200, 250, 300];
-  const counts = new Array(bins.length - 1).fill(0);
-  heights.forEach(h => {
-    for (let i = 0; i < bins.length - 1; i++) {
-      if (h > bins[i] && h <= bins[i + 1]) {
-        counts[i]++;
-        break;
-      }
+  // Histogram bins
+  const heights = data.map(d=>+d.tinggi).filter(Boolean);
+  const bins = [0,50,100,150,200,250,300];
+  const counts = new Array(bins.length-1).fill(0);
+  heights.forEach(h=>{
+    for(let i=0;i<bins.length-1;i++){
+      if(h>bins[i] && h<=bins[i+1]){ counts[i]++; break; }
     }
   });
-  const labels = bins.slice(0, -1).map((b, i) => `${bins[i] + 1}-${bins[i + 1]}`);
-  if (histChart) {
-    histChart.data.labels = labels;
-    histChart.data.datasets[0].data = counts;
-    histChart.update();
-  }
+  const labels = bins.slice(0,-1).map((b,i)=>`${bins[i]+1}-${bins[i+1]}`);
+  histChart.data.labels = labels;
+  histChart.data.datasets[0].data = counts;
+  histChart.update();
 
-  // Health Chart
-  const healthCounts = { Sehat: 0, Merana: 0, Mati: 0 };
-  data.forEach(d => {
-    if (healthCounts[d.kesehatan] !== undefined) healthCounts[d.kesehatan]++;
-  });
-  if (healthChart) {
-    healthChart.data.datasets[0].data = [
-      healthCounts.Sehat,
-      healthCounts.Merana,
-      healthCounts.Mati
-    ];
-    healthChart.update();
-  }
+  // Health
+  const healthCounts = {Sehat:0, Merana:0, Mati:0};
+  data.forEach(d=>{ if(healthCounts[d.kesehatan]!==undefined) healthCounts[d.kesehatan]++; });
+  healthChart.data.datasets[0].data = [healthCounts.Sehat, healthCounts.Merana, healthCounts.Mati];
+  healthChart.update();
 }
-
 
 // ============ AI HSV (simple) ============
 function analyzeHSV(imgData){
