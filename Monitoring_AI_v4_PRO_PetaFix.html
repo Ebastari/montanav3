@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Monitoring_AI_v4_PRO — PetaFix (Mobile + EXIF + Map Pro)</title>
+
+<!-- ====== Libraries (CDN) ====== -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- MarkerCluster -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- EXIF -->
+<script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/dist/piexif.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0b0f1a; --surface:#111827; --muted:#6b7280; --text:#e5e7eb; --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  html,body{height:100%;margin:0;background:#000;color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  .app{position:fixed;inset:0;display:flex;flex-direction:column}
+  /* Camera layer */
+  .camera-wrap{position:relative;flex:1;background:#000;display:flex;align-items:center;justify-content:center}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  canvas#canvas{display:none}
+  /* Floating toolbar */
+  .toolbar{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:18px;z-index:30}
+  .fab{width:70px;height:70px;border-radius:50%;border:6px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  .fab::after{content:"";width:100%;height:100%;background:#fff;border-radius:50%;transition:.1s transform}
+  .fab:active::after{transform:scale(.9)}
+  .btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);color:#fff;border-radius:14px;padding:10px 14px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+  .btn.round{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px}
+  /* --- MOBILE IMPROVEMENT: topbar wrap --- */
+  .topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;z-index:40;flex-wrap: wrap;}
+  .chip{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:8px 12px;font-size:13px;margin-top:4px;}
+  .menu-btn{position:absolute;top:12px;right:12px;z-index:50;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:10px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  /* Overlay info box - draggable */
+  .overlay{position:absolute;left:16px;bottom:110px;z-index:35;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:10px 12px;border-radius:10px;min-width:220px;cursor:move}
+  .overlay h4{margin:0 0 6px 0;font-size:14px}
+  .overlay .row{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-size:12px;line-height:1.4}
+  /* Slider tinggi */
+  .height-wrap{position:absolute;left:0;right:0;bottom:96px;display:flex;justify-content:center;z-index:34}
+  .height-panel{width:min(520px,92%);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:10px 14px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+  #tinggiRange{width:100%}
+  .value{font-weight:700}
+  /* Bottom sheet for analytics */
+  .sheet{position:fixed;left:0;right:0;bottom:0;height:80vh;background:var(--surface);border-top-left-radius:18px;border-top-right-radius:18px;box-shadow:0 -16px 40px rgba(0,0,0,.55);transform:translateY(100%);transition:.35s cubic-bezier(.2,.8,.2,1) transform;z-index:60;display:flex;flex-direction:column}
+  .sheet.visible{transform:translateY(0)}
+  .handle{padding:8px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+  .handle .bar{width:50px;height:5px;margin:0 auto;border-radius:3px;background:#374151}
+  .sheet-content{flex:1;overflow:auto;padding:14px;display:grid;grid-template-columns:1fr;gap:14px}
+  .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:12px}
+  .card h3{margin:0 0 8px 0;font-size:16px}
+  .grid-2{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:860px){.grid-2{grid-template-columns:1.2fr 1fr}}
+  /* Map */
+  #map{width:100%;height:360px;border-radius:12px;outline:1px solid rgba(255,255,255,.06)}
+  .leaflet-control.custom-focus{background:rgba(17,24,39,.9);color:#fff;border-radius:8px;border:1px solid rgba(255,255,255,.15);box-shadow:0 6px 18px rgba(0,0,0,.45);padding:6px 8px;cursor:pointer}
+  .leaflet-control.custom-focus:hover{filter:brightness(1.1)}
+  /* Toast */
+  .toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:10px 12px;z-index:80;opacity:0;transform:translateY(8px);transition:.3s cubic-bezier(.2,.8,.2,1)}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .progress{height:4px;background:#1f2937;border-radius:999px;overflow:hidden;margin-top:6px}
+  .progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#3b82f6);transition:width 2s linear}
+  /* Quick options multi-select */
+  .quick{position:absolute;left:0;right:0;bottom:160px;display:flex;gap:10px;justify-content:center;z-index:33;pointer-events:none}
+  .quick .tag{pointer-events:auto;padding:8px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);user-select:none;cursor:pointer;font-size:13px}
+  .tag.on{background:var(--accent);color:#052e12;border-color:var(--accent);font-weight:700}
+  /* Thumb row */
+  .thumbs{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:32}
+  .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid rgba(255,255,255,.4)}
+  /* Compass */
+  .compass{position:absolute;top:12px;right:68px;width:76px;height:76px;border-radius:50%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;z-index:41}
+  .compass svg{width:60px;height:60px}
+  .hr{height:1px;background:#1f2937;margin:8px 0}
+  .muted{color:#94a3b8}
+  input[type="number"],input[type="text"]{width:100%;background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:10px;color:#e5e7eb}
+  label{font-size:12px;color:#9ca3af}
+  .row-flex{display:grid;grid-template-columns:1fr;gap:10px}
+  @media (min-width: 500px) {.row-flex{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="topbar">
+      <div class="chip" title="Koordinat terakhir"><span id="chipGPS">GPS: -</span></div>
+      <div class="chip" title="Target harian"><span id="chipGoal">Target 100 • 0 selesai</span></div>
+    </div>
+    <button class="menu-btn" id="btnToggleSheet" title="Menu">☰</button>
+
+    <!-- Draggable overlay -->
+    <div class="overlay" id="overlayInfo">
+      <h4>Ringkasan Live</h4>
+      <div class="row">Lokasi: <span id="ovLokasi">-</span></div>
+      <div class="row">Tinggi: <span id="ovTinggi">10</span> cm</div>
+      <div class="row">Jenis: <span id="ovJenis">Akasia</span></div>
+      <div class="row">Health: <span id="ovHealth" class="value">-</span></div>
+      <div class="row">Foto Lokal: <span id="ovCount">0</span></div>
+    </div>
+
+    <!-- Slider tinggi -->
+    <div class="height-wrap">
+      <div class="height-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div><b>Tinggi Tanaman</b> <span class="muted">(cm)</span></div>
+          <div class="value" id="tinggiValueDisplay">10</div>
+        </div>
+        <input type="range" id="tinggiRange" min="10" max="300" step="1" value="10" aria-label="Tinggi (cm)" title="Geser untuk mengubah tinggi (10–300 cm)">
+      </div>
+    </div>
+
+    <!-- Quick multi-select jenis -->
+    <div class="quick" id="quickContainer">
+      <div class="tag on" data-value="Akasia">Akasia</div>
+      <div class="tag" data-value="Sengon">Sengon</div>
+      <div class="tag" data-value="Jati">Jati</div>
+      <div class="tag" data-value="Mahoni">Mahoni</div>
+      <div class="tag" data-value="Lainnya">Lainnya</div>
+    </div>
+
+    <!-- Thumbnails -->
+    <div class="thumbs" id="thumbs"></div>
+
+    <!-- Compass -->
+    <div class="compass" title="Arah (derajat)">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="48" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none"/>
+        <g id="needle" transform="rotate(0,50,50)">
+          <polygon points="50,12 58,50 50,46 42,50" fill="#ef4444"></polygon>
+        </g>
+        <text x="50" y="64" text-anchor="middle" font-size="12" fill="#e5e7eb" id="headingText">0°</text>
+      </svg>
+    </div>
+
+    <!-- Floating Toolbar -->
+    <div class="toolbar">
+      <button class="btn round" id="btnGPS" title="Ambil GPS">📍</button>
+      <div class="fab" id="btnCapture" title="Ambil Foto"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet: Analytics & Form -->
+  <div class="sheet" id="sheet">
+    <div class="handle" id="handle"><div class="bar"></div></div>
+    <div class="sheet-content">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Data Monitoring</h3>
+          <div class="row-flex">
+            <div>
+              <label>Tinggi (cm)</label>
+              <input id="tinggi" type="number" min="10" max="300" step="1" value="10" placeholder="cth: 120" title="Isi tinggi tanaman dalam centimeter">
+            </div>
+            <div>
+              <label>Jenis Tanaman</label>
+              <input id="jenis" type="text" placeholder="Akasia/Sengon/..." title="Ketik atau pilih dari chip multi-select di layar kamera">
+            </div>
+          </div>
+          <div class="row-flex" style="margin-top:10px">
+            <div>
+              <label>Tahun Tanam</label>
+              <input id="tahun" type="number" min="2000" max="2100" placeholder="2025">
+            </div>
+            <div>
+              <label>Lokasi (lat,lon)</label>
+              <input id="lokasi" type="text" placeholder="-2.12345, 113.12345">
+            </div>
+          </div>
+          <div class="row-flex" style="margin-top:10px">
+            <div>
+              <label>Pengawas</label>
+              <input id="pengawas" type="text" placeholder="Nama pengawas">
+            </div>
+            <div>
+              <label>Vendor</label>
+              <input id="vendor" type="text" placeholder="Nama vendor">
+            </div>
+          </div>
+          <div class="row-flex" style="margin-top:10px">
+            <div>
+              <label>Kesehatan</label>
+              <input id="kesehatan" type="text" placeholder="Sehat/Merana/Mati (otomatis via AI, bisa edit)">
+            </div>
+            <div>
+              <label>Apps Script URL</label>
+              <input id="appsScriptUrl" type="text" placeholder="https://script.google.com/macros/s/xxx/exec">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <button class="btn" id="btnUpload">Kirim ke Spreadsheet</button>
+            <button class="btn" id="btnExportCSV">Export CSV</button>
+            <button class="btn" id="btnExportZIP">Export ZIP</button>
+          </div>
+          <div class="hr"></div>
+          <div class="muted" id="status">Status: siap</div>
+        </div>
+
+        <div class="card">
+          <h3>Peta Interaktif (Leaflet)</h3>
+          <div id="map"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Scatter: Tinggi vs Tahun</h3>
+          <canvas id="chartScatter" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Distribusi Tinggi (Histogram)</h3>
+          <canvas id="chartHist" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Health Index (HSV)</h3>
+        <canvas id="chartHealth" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div id="toastMsg">Siap.</div>
+  <div class="progress"><i id="toastProg"></i></div>
+</div>
+
+<script>
+// ============ State ============
+let data = JSON.parse(localStorage.getItem("monitoringData")||"[]");
+let lastGPS = { koordinat: "", akurasi: "" };
+let goalTarget = 100;
+let map, markersLayer, clusters, baseLayers, focusControl;
+let scatterChart, histChart, healthChart;
+let currentStream = null;
+let currentDeviceId = null;
+
+// ============ DOM ============
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const btnCapture = document.getElementById('btnCapture');
+const btnGPS = document.getElementById('btnGPS');
+const btnToggleSheet = document.getElementById('btnToggleSheet');
+const sheet = document.getElementById('sheet');
+const handle = document.getElementById('handle');
+const tinggiRange = document.getElementById('tinggiRange');
+const tinggiInput = document.getElementById('tinggi');
+const tinggiValueDisplay = document.getElementById('tinggiValueDisplay');
+const thumbs = document.getElementById('thumbs');
+const ovLokasi = document.getElementById('ovLokasi');
+const ovTinggi = document.getElementById('ovTinggi');
+const ovJenis = document.getElementById('ovJenis');
+const ovHealth = document.getElementById('ovHealth');
+const ovCount = document.getElementById('ovCount');
+const chipGPS = document.getElementById('chipGPS');
+const chipGoal = document.getElementById('chipGoal');
+const jenisInput = document.getElementById('jenis');
+const tahunInput = document.getElementById('tahun');
+const lokasiInput = document.getElementById('lokasi');
+const pengawasInput = document.getElementById('pengawas');
+const vendorInput = document.getElementById('vendor');
+const kesehatanInput = document.getElementById('kesehatan');
+const statusText = document.getElementById('status');
+const appsScriptUrlInput = document.getElementById('appsScriptUrl');
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+const toastProg = document.getElementById('toastProg');
+const overlayInfo = document.getElementById('overlayInfo');
+
+// ============ Utils ============
+const pad = (n)=> n.toString().padStart(2,'0');
+const genId = ()=>{
+  const d=new Date();
+  return d.getFullYear()+""+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
+};
+function showToast(msg, progress=0){
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  toastProg.style.width = (progress*100)+'%';
+  clearTimeout(window.__toastTO);
+  window.__toastTO = setTimeout(()=> toast.classList.remove('show'), 2000);
+}
+function saveData(){ localStorage.setItem("monitoringData", JSON.stringify(data)); }
+function safeFilename(s){ return String(s||'').replace(/[^\w.-]/g,"_"); }
+function dataURLtoBlob(dataurl){
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+  while(n--){ u8[n]=bstr.charCodeAt(n); }
+  return new Blob([u8], {type:mime});
+}
+function parseLatLon(str){
+  const p=(str||"").split(',').map(s=>s.trim());
+  if(p.length<2) return null;
+  const lat=parseFloat(p[0]); const lon=parseFloat(p[1]);
+  if(isNaN(lat)||isNaN(lon)) return null;
+  return {lat,lon};
+}
+function escapeHtml(s){ const el = document.createElement('div'); el.innerText = s || ''; return el.innerHTML; }
+function escapeXml(s){ return String(s||'').replace(/[<>&"']/g, c=>`&#${c.charCodeAt(0)};`); }
+
+// DMS for EXIF
+function toDMS(coord){
+  const abs=Math.abs(coord);
+  const deg=Math.floor(abs);
+  const min=Math.floor((abs-deg)*60);
+  const sec=(abs-deg-min/60)*3600;
+  return [[deg,1],[min,1],[Math.round(sec*100),100]];
+}
+
+// ============ Camera ============
+async function listCameras(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const vids = devices.filter(d=>d.kind==="videoinput");
+  const back = vids.find(v=>/back|rear|environment/i.test(v.label)) || vids[0];
+  if(back) startCamera(back.deviceId);
+}
+async function startCamera(deviceId){
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
+  const constraints = { video: { deviceId: deviceId? { exact: deviceId } : undefined, facingMode:'environment' } };
+  try{
+    const s = await navigator.mediaDevices.getUserMedia(constraints);
+    currentStream = s; currentDeviceId = s.getVideoTracks()[0].getSettings().deviceId;
+    video.srcObject = s;
+  }catch(e){
+    showToast("Gagal akses kamera: "+(e.message||e),0);
+  }
+}
+
+// ============ GPS & Compass ============
+function ambilGPS(){
+  showToast("Ambil GPS...", 0.2);
+  if(!navigator.geolocation){ showToast("Geolocation tidak didukung",0); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude.toFixed(6);
+    const lon=pos.coords.longitude.toFixed(6);
+    const acc=pos.coords.accuracy.toFixed(1);
+    lastGPS = { koordinat: lat+","+lon, akurasi: acc };
+    lokasiInput.value = lastGPS.koordinat;
+    chipGPS.textContent = "GPS: "+lastGPS.koordinat+" (±"+acc+"m)";
+    ovLokasi.textContent = lastGPS.koordinat;
+    addMapMarker(parseFloat(lat),parseFloat(lon), "Posisi saat ini", undefined, true);
+    focusMapTo(parseFloat(lat),parseFloat(lon), 17);
+    showToast("GPS siap ("+acc+"m)",1);
+  }, err=>{
+    showToast("GPS gagal: "+err.message,0);
+  }, { enableHighAccuracy:true, timeout:12000, maximumAge:0 });
+}
+if(window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission){
+  // iOS permission flow will be triggered on user gesture later (capture or gps click)
+}
+function initCompass(){
+  function rotateNeedle(deg){
+    document.getElementById('needle').setAttribute('transform','rotate('+deg+',50,50)');
+    document.getElementById('headingText').textContent = Math.round(deg)+'°';
+  }
+  const handler = (ev)=>{
+    const heading = ev.webkitCompassHeading || (360-ev.alpha) || 0;
+    rotateNeedle(heading);
+  };
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', handler, true);
+  }
+}
+
+// ============ Overlay drag ============
+(function enableDrag(){
+  const el = overlayInfo;
+  let sx=0, sy=0, ox=0, oy=0, dragging=false;
+  el.addEventListener('pointerdown', e=>{dragging=true; sx=e.clientX; sy=e.clientY; const r=el.getBoundingClientRect(); ox=r.left; oy=r.top; el.setPointerCapture(e.pointerId)});
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    el.style.left = Math.max(6, Math.min(window.innerWidth-200, ox+dx))+"px";
+    el.style.top = Math.max(6, Math.min(window.innerHeight-200, oy+dy))+"px";
+    el.style.bottom = "auto";
+  });
+  el.addEventListener('pointerup', ()=> dragging=false);
+})();
+
+// ============ Slider sync ============
+function syncFromRange(){
+  const v = parseInt(tinggiRange.value,10);
+  tinggiInput.value = v;
+  tinggiValueDisplay.textContent = v;
+  ovTinggi.textContent = v;
+}
+function syncFromInput(){
+  let v = parseInt(tinggiInput.value,10);
+  if(isNaN(v)) v = 10;
+  v = Math.max(10, Math.min(300, v));
+  tinggiInput.value = v;
+  tinggiRange.value = v;
+  tinggiValueDisplay.textContent = v;
+  ovTinggi.textContent = v;
+}
+tinggiRange.addEventListener('input', syncFromRange);
+tinggiInput.addEventListener('change', syncFromInput);
+syncFromInput();
+
+// ============ Quick multi-select jenis ============
+(function initQuick(){
+  const c = document.getElementById('quickContainer');
+  c.querySelectorAll('.tag').forEach(tag=>{
+    tag.addEventListener('click', ()=>{
+      tag.classList.toggle('on');
+      const sel = [...c.querySelectorAll('.tag.on')].map(t=>t.dataset.value);
+      jenisInput.value = sel.join(', ');
+      ovJenis.textContent = jenisInput.value || '-';
+    });
+  });
+  jenisInput.addEventListener('input', ()=> ovJenis.textContent = jenisInput.value || '-');
+})();
+
+// ============ Bottom sheet toggle ============
+function toggleSheet(){ sheet.classList.toggle('visible'); }
+btnToggleSheet.addEventListener('click', toggleSheet);
+handle.addEventListener('click', toggleSheet);
+
+// ============ Map (Peta Fix) ============
+function initMap(){
+  map = L.map('map', { zoomControl: true }).setView([0,110], 5);
+
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution:"© OpenStreetMap"
+  });
+  const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: 'Tiles © Esri'
+  });
+  baseLayers = { "Peta Normal": osm, "Satelit (Esri)": satellite };
+  osm.addTo(map);
+
+  clusters = L.markerClusterGroup();
+  markersLayer = L.layerGroup();
+  map.addLayer(clusters);
+
+  // Layer control
+  L.control.layers(baseLayers, {"Titik Monitoring": clusters}, { position:'topright' }).addTo(map);
+
+  // Custom focus control
+  focusControl = L.control({position:'topright'});
+  focusControl.onAdd = function(){
+    const div = L.DomUtil.create('div','leaflet-control custom-focus'); 
+    div.innerHTML = '🎯 Fokus ke Lokasi Terakhir';
+    L.DomEvent.disableClickPropagation(div);
+    div.addEventListener('click', ()=>{
+      const p = parseLatLon(lastGPS.koordinat||lokasiInput.value||"");
+      if(p){ focusMapTo(p.lat, p.lon, 17); showToast('📍 Peta difokuskan'); }
+      else{ showToast('Belum ada koordinat GPS'); }
+    });
+    return div;
+  };
+  focusControl.addTo(map);
+
+  refreshMarkers(); // load existing
+}
+function markerColorByHealth(health){
+  return health==="Sehat" ? "#22c55e" : (health==="Merana" ? "#f59e0b" : "#ef4444");
+}
+function addMapMarker(lat,lon, label, health="Sehat", animate=false, entry=null){
+  if(!clusters) return;
+  const color = markerColorByHealth(health);
+  const marker = L.circleMarker([lat,lon], { radius: 1, color: color, fillColor: color, fillOpacity: .9, weight: 2, opacity: 0.7 });
+  let html = label || "";
+  if(entry){
+    const gmaps = `https://www.google.com/maps?q=${lat},${lon}`;
+    html = `<b>${escapeHtml(entry.jenis||'-')}</b><br>ID: ${escapeHtml(entry.id)}<br>Tinggi: ${escapeHtml(entry.tinggi)} cm<br>Tanggal: ${escapeHtml(entry.tanggal||'')}
+      <br><a href="${gmaps}" target="_blank">🗺️ Buka di Google Maps</a>
+      ${entry.foto ? `<br><img src="${entry.foto}" style="width:140px;margin-top:6px;border-radius:6px" />` : ''}`;
+  }
+  const m = L.marker([lat,lon], {
+    icon: L.divIcon({ className:'', html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid rgba(0,0,0,.5);box-shadow:0 0 0 0 rgba(34,197,94,.0);"></div>` }),
+    opacity: 0.0
+  });
+  m.bindPopup(html);
+  clusters.addLayer(m);
+
+  if(animate){
+    let o = 0.0; const fade = setInterval(()=>{ o += 0.12; if(o>=1){ o=1; clearInterval(fade); } m.setOpacity(o); }, 30);
+  } else {
+    m.setOpacity(1);
+  }
+}
+function refreshMarkers(){
+  if(!clusters) return;
+  clusters.clearLayers();
+  data.forEach(d=>{
+    const p = parseLatLon(d.lokasi);
+    if(!p) return;
+    addMapMarker(p.lat, p.lon, null, d.kesehatan, false, d);
+  });
+}
+function focusMapTo(lat,lon, zoom=17){
+  map.setView([lat,lon], zoom, { animate: true, duration: 0.6 });
+}
+
+// ============ Charts ============
+function initCharts(){
+  const ctxS = document.getElementById('chartScatter');
+  const ctxH = document.getElementById('chartHist');
+  const ctxHe= document.getElementById('chartHealth');
+  scatterChart = new Chart(ctxS, {
+    type:'scatter',
+    data:{ datasets:[{label:'Tinggi vs Tahun', data:[], pointRadius:4}] },
+    options:{ responsive:true, plugins:{legend:{display:true}}, scales:{ x:{ title:{display:true,text:'Tahun'}}, y:{ title:{display:true,text:'Tinggi (cm)'}}} }
+  });
+  histChart = new Chart(ctxH, {
+    type:'bar',
+    data:{ labels:[], datasets:[{label:'Jumlah', data:[]}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{title:{display:true,text:'Rentang Tinggi (cm)'}}, y:{title:{display:true,text:'Count'}}} }
+  });
+  healthChart = new Chart(ctxHe, {
+    type:'bar',
+    data:{ labels:['Sehat','Merana','Mati'], datasets:[{label:'Jumlah', data:[0,0,0]}]},
+    options:{ responsive:true, plugins:{legend:{display:false}} }
+  });
+  refreshCharts();
+}
+function refreshCharts(){
+  // Scatter
+  const pts = data.filter(d=>d.tahun && d.tinggi).map(d=>({x: +d.tahun, y: +d.tinggi}));
+  scatterChart.data.datasets[0].data = pts;
+  scatterChart.update();
+
+  // Histogram bins
+  const heights = data.map(d=>+d.tinggi).filter(Boolean);
+  const bins = [0,50,100,150,200,250,300];
+  const counts = new Array(bins.length-1).fill(0);
+  heights.forEach(h=>{
+    for(let i=0;i<bins.length-1;i++){
+      if(h>bins[i] && h<=bins[i+1]){ counts[i]++; break; }
+    }
+  });
+  const labels = bins.slice(0,-1).map((b,i)=>`${bins[i]+1}-${bins[i+1]}`);
+  histChart.data.labels = labels;
+  histChart.data.datasets[0].data = counts;
+  histChart.update();
+
+  // Health
+  const healthCounts = {Sehat:0, Merana:0, Mati:0};
+  data.forEach(d=>{ if(healthCounts[d.kesehatan]!==undefined) healthCounts[d.kesehatan]++; });
+  healthChart.data.datasets[0].data = [healthCounts.Sehat, healthCounts.Merana, healthCounts.Mati];
+  healthChart.update();
+}
+
+// ============ AI HSV (simple) ============
+function analyzeHSV(imgData){
+  const {data:arr,width,height} = imgData;
+  let r=0,g=0,b=0,c=0;
+  for(let y=0;y<height;y+=4){
+    for(let x=0;x<width;x+=4){
+      const i=(y*width+x)*4;
+      r+=arr[i]; g+=arr[i+1]; b+=arr[i+2]; c++;
+    }
+  }
+  r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c);
+  const mx=Math.max(r,g,b)/255, mn=Math.min(r,g,b)/255;
+  const diff=mx-mn;
+  let h=0; let s = mx===0?0:diff/mx; let v=mx;
+  if(diff!=0){
+    if(mx===r/255){ h=60*(((g-b)/255)/diff%6); }
+    else if(mx===g/255){ h=60*(((b-r)/255)/diff+2); }
+    else { h=60*(((r-g)/255)/diff+4); }
+  }
+  if(h<0) h+=360;
+  let label="Sehat";
+  if(v<0.25 || (h>0 && h<25)) label="Mati";
+  else if((h>=25 && h<=65) && v>0.25) label="Merana";
+  else label="Sehat";
+  return {h:Math.round(h), s:+s.toFixed(2), v:+v.toFixed(2), label};
+}
+
+// ============ EXIF Writer ============
+function insertExif(dataUrl, meta){
+  if(typeof piexif === 'undefined'){ console.warn('piexif not loaded'); return dataUrl; }
+  try{
+    const ts = meta.timestamp;
+    const exifTime = ts.getFullYear()+":"+pad(ts.getMonth()+1)+":"+pad(ts.getDate())+" "+pad(ts.getHours())+":"+pad(ts.getMinutes())+":"+pad(ts.getSeconds());
+    const gps = {};
+    const ll = parseLatLon(meta.koordinat||"");
+    if(ll){
+      gps[piexif.GPSIFD.GPSLatitudeRef] = ll.lat<0? "S":"N";
+      gps[piexif.GPSIFD.GPSLatitude] = toDMS(ll.lat);
+      gps[piexif.GPSIFD.GPSLongitudeRef] = ll.lon<0? "W":"E";
+      gps[piexif.GPSIFD.GPSLongitude] = toDMS(ll.lon);
+      gps[piexif.GPSIFD.GPSMapDatum] = "WGS-84";
+      if(meta.akurasi){
+        const dop = Math.max(0, Math.min(10000, Math.round(parseFloat(meta.akurasi)*100)));
+        gps[piexif.GPSIFD.GPSDOP] = [dop,100];
+      }
+    }
+    const comment = `ID:${meta.id}; Tinggi:${meta.tinggi}cm; Jenis:${meta.jenis}; Lokasi:${meta.koordinat}; Pengawas:${meta.pengawas||''}`;
+    const exifObj = {
+      "0th": {
+        [piexif.ImageIFD.Make]: "Monitoring_AI_v4_PRO",
+        [piexif.ImageIFD.Model]: "Web Camera",
+        [piexif.ImageIFD.Software]: "v4_PRO",
+        [piexif.ImageIFD.DateTime]: exifTime,
+        [piexif.ImageIFD.Orientation]: 1
+      },
+      "Exif": {
+        [piexif.ExifIFD.DateTimeOriginal]: exifTime,
+        [piexif.ExifIFD.DateTimeDigitized]: exifTime,
+        [piexif.ExifIFD.UserComment]: piexif.helper.encodeText(comment)
+      },
+      "GPS": gps
+    };
+    const exifStr = piexif.dump(exifObj);
+    return piexif.insert(exifStr, dataUrl);
+  }catch(e){
+    console.warn("EXIF insert failed:", e);
+    return dataUrl;
+  }
+}
+
+// ============ Capture Flow ============
+async function capture(){
+  if(!video.videoWidth){ showToast("Video belum siap",0); return; }
+  const id = genId();
+  const tinggi = parseInt(tinggiInput.value||tinggiRange.value,10) || 10;
+  if(tinggi<=0){ showToast("Tinggi tidak valid",0); return; }
+
+  // Draw frame
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+
+  // AI HSV
+  const sample = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const hsv = analyzeHSV(sample);
+  kesehatanInput.value = kesehatanInput.value || hsv.label;
+  ovHealth.textContent = hsv.label;
+
+  // Watermark (dipertahankan)
+  const margin=20, lh=Math.max(18, Math.round(canvas.height*0.022));
+  ctx.font = `bold ${lh}px sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,.96)';
+  ctx.strokeStyle = 'rgba(0,0,0,.75)';
+  ctx.lineWidth = Math.max(3, Math.round(lh*0.15));
+  const tanggal = new Date().toLocaleString('id-ID');
+  const lines = [
+    `Lokasi: ${lokasiInput.value||lastGPS.koordinat||'-'}`,
+    `Tinggi: ${tinggi} cm`,
+    `Jenis: ${jenisInput.value||'-'}`,
+    `Koordinat: ${lastGPS.koordinat||'-'}`,
+    `Akurasi: ±${lastGPS.akurasi||'-'} m`,
+    `Health(HSV): ${hsv.label} (H:${hsv.h} S:${hsv.s} V:${hsv.v})`,
+    `Tanggal: ${tanggal}`
+  ];
+  lines.forEach((t,i)=>{
+    const y = canvas.height - margin - (lines.length-1-i)*(lh+8);
+    ctx.strokeText(t, margin, y);
+    ctx.fillText(t, margin, y);
+  });
+  const brand = "Monitoring_AI_v4_PRO";
+  const w = ctx.measureText(brand).width;
+  ctx.strokeText(brand, canvas.width - margin - w, margin+lh);
+  ctx.fillText(brand, canvas.width - margin - w, margin+lh);
+
+  // Encode + EXIF
+  let dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  dataUrl = insertExif(dataUrl, {
+    id, tinggi, jenis: jenisInput.value, koordinat: lastGPS.koordinat, akurasi: lastGPS.akurasi, pengawas: pengawasInput.value, timestamp: new Date()
+  });
+
+  // Save entry
+  const entry = {
+    id,
+    tanggal,
+    lokasi: lokasiInput.value||lastGPS.koordinat||"",
+    pekerjaan: "",
+    tahun: tahunInput.value||"",
+    jenis: jenisInput.value||"",
+    tim: "",
+    tinggi,
+    kesehatan: kesehatanInput.value||hsv.label,
+    koordinat: lastGPS.koordinat||"",
+    akurasi: lastGPS.akurasi||"",
+    x: parseLatLon(lastGPS.koordinat||"")?.lon || "",
+    y: parseLatLon(lastGPS.koordinat||"")?.lat || "",
+    pengawas: pengawasInput.value||"",
+    vendor: vendorInput.value||"",
+    foto: dataUrl
+  };
+  data.push(entry);
+  saveData();
+  ovCount.textContent = data.length;
+  chipGoal.textContent = `Target ${goalTarget} • ${data.length} selesai`;
+
+  // Update UI
+  addThumb(dataUrl);
+  refreshMarkers();
+  // Auto add marker for this entry with animation + focus
+  const p = parseLatLon(entry.lokasi);
+  if(p){ addMapMarker(p.lat,p.lon,null, entry.kesehatan, true, entry); focusMapTo(p.lat,p.lon, 17); showToast("📍 Titik baru ditambahkan & peta difokuskan"); }
+
+  refreshCharts();
+
+  // Haptic
+  if(navigator.vibrate) navigator.vibrate(30);
+
+  showToast("Foto tersimpan",1);
+}
+function addThumb(src){
+  const img = new Image();
+  img.src = src;
+  thumbs.prepend(img);
+  while(thumbs.children.length>5){ thumbs.removeChild(thumbs.lastChild); }
+}
+
+// ============ Upload (Apps Script) ============
+async function uploadLast(){
+  if(!data.length){ showToast("Belum ada data",0); return; }
+  const last = data[data.length-1];
+  const url = (appsScriptUrlInput.value||"").trim();
+  if(!url){ showToast("Apps Script URL kosong",0); return; }
+  showToast("Mengirim...", .3);
+  try{
+    const payload = {
+      ID: last.id, Tanggal: last.tanggal, Lokasi: last.lokasi, Pekerjaan: last.pekerjaan, Tinggi: last.tinggi,
+      Koordinat: last.koordinat, X: last.x, Y: last.y, Tanaman: last.jenis, "Tahun Tanam": last.tahun,
+      Pengawas: last.pengawas, Vendor: last.vendor, Gambar: last.foto, Gambar_Nama_File: `Montana V2_Images/Gambar Montana (${last.id}).jpg`, LINK:""
+    };
+    await fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify(payload)});
+    showToast("Terkirim (mode no-cors)",1);
+  }catch(e){
+    showToast("Gagal kirim: "+(e.message||e),0);
+  }
+}
+
+// ============ Export CSV & ZIP ============
+function exportCSV(){
+  if(!data.length){ showToast("Tidak ada data",0); return; }
+  let csv = "ID,Tanggal,Lokasi,Tinggi,Koordinat,X,Y,Jenis,Tahun,Pengawas,Vendor,Kesehatan,Akurasi\n";
+  data.forEach(d=>{
+    csv += `"${d.id}","${d.tanggal}","${d.lokasi}",${d.tinggi},"${d.koordinat}",${d.x},${d.y},"${d.jenis}","${d.tahun}","${d.pengawas}","${d.vendor}","${d.kesehatan}","${d.akurasi}"\n`;
+  });
+  saveAs(new Blob([csv], {type:'text/csv;charset=utf-8;'}), 'monitoring.csv');
+  showToast("CSV diunduh",1);
+}
+async function exportZIP(){
+  if(!data.length){ showToast("Tidak ada data",0); return; }
+  const zip = new JSZip();
+  let csv = "ID,Tanggal,Lokasi,Tinggi,Koordinat,X,Y,Jenis,Tahun,Pengawas,Vendor,Kesehatan,Akurasi\n";
+  data.forEach((d,i)=>{
+    csv += `"${d.id}","${d.tanggal}","${d.lokasi}",${d.tinggi},"${d.koordinat}",${d.x},${d.y},"${d.jenis}","${d.tahun}","${d.pengawas}","${d.vendor}","${d.kesehatan}","${d.akurasi}"\n`;
+    if(d.foto){
+      const b64 = d.foto.split(',')[1];
+      if(b64) zip.file(`images/foto_${i+1}_${safeFilename(d.id)}.jpg`, b64, {base64:true});
+    }
+  });
+  zip.file("data.csv", csv);
+  const blob = await zip.generateAsync({type:'blob'});
+  saveAs(blob, 'monitoring_images.zip');
+  showToast("ZIP diunduh",1);
+}
+
+// ============ Events ============
+btnGPS.addEventListener('click', async ()=>{
+  if(DeviceOrientationEvent && DeviceOrientationEvent.requestPermission){
+    try{ await DeviceOrientationEvent.requestPermission(); }catch(e){}
+  }
+  ambilGPS();
+});
+btnCapture.addEventListener('click', capture);
+document.addEventListener('keydown', (e)=>{ if(e.key==="Enter") capture(); });
+document.getElementById('btnUpload').addEventListener('click', uploadLast);
+document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+document.getElementById('btnExportZIP').addEventListener('click', exportZIP);
+
+// ============ Init ============
+(async function init(){
+  try{
+    await listCameras();
+    initCompass();
+    initMap();
+    initCharts();
+    ovCount.textContent = data.length;
+    chipGoal.textContent = `Target ${goalTarget} • ${data.length} selesai`;
+    // Restore Apps Script URL
+    const savedUrl = localStorage.getItem('appsScriptUrl')||"";
+    if(savedUrl) appsScriptUrlInput.value = savedUrl;
+    appsScriptUrlInput.addEventListener('input', ()=> localStorage.setItem('appsScriptUrl', appsScriptUrlInput.value||""));
+  }catch(e){
+    console.error(e);
+  }
+})();
+
+</script>
+</body>
+</html>
