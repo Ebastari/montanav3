@@ -2,8 +2,11 @@
 <html lang="id">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>Monitoring_AI_v6_PRO — Kamera + ZIP + Spreadsheet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Monitoring_AI_v6_PRO_UI_Enhanced — Kamera + GPS Dinamis + Chart</title>
+
+<!-- ====== FONT: Plus Jakarta Sans (UI Enhancement 1) ====== -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 
 <!-- ====== Libraries (CDN) ====== -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
@@ -20,33 +23,147 @@
   :root{
     --bg:#0b0f1a; --surface:#111827; --muted:#6b7280; --text:#e5e7eb; --accent:#22c55e; --danger:#ef4444; --warn:#f59e0b;
   }
-  html,body{height:100%;margin:0;background:#000;color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  /* UI Enhancement 1: Ganti Font Utama */
+  html,body{
+    height:100%;margin:0;background:#000;color:var(--text);
+    font-family:'Plus Jakarta Sans', system-ui, Segoe UI, Roboto, Arial, sans-serif;
+    overflow:hidden
+  }
   .app{position:fixed;inset:0;display:flex;flex-direction:column}
   /* Camera layer */
   .camera-wrap{position:relative;flex:1;background:#000;display:flex;align-items:center;justify-content:center}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   canvas#canvas{display:none}
+  
+  /* UI Enhancement 3: Bayangan lembut dan Transisi */
+  .overlay, .toolbar, #map, .card {
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+    transition: all 0.3s ease-out; /* Transisi lembut */
+  }
+  
   /* Floating toolbar (bawah) */
   .toolbar{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:18px;z-index:20}
-  .fab{width:70px;height:70px;border-radius:50%;border:6px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  
+  /* UI Enhancement 4: Glow dan Kontras FAB/Button */
+  .fab{
+    width:70px;height:70px;border-radius:50%;border:6px solid rgba(255,255,255,.9);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow: 0 0 16px rgba(34, 197, 94, .7); /* Glow Hijau */
+  }
   .fab::after{content:"";width:100%;height:100%;background:#fff;border-radius:50%;transition:.1s transform}
   .fab:active::after{transform:scale(.9)}
-  .btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);color:#fff;border-radius:14px;padding:10px 14px;cursor:pointer}
+  .btn{
+    background:rgba(255,255,255,.2); /* Kontras lebih kuat */
+    border:1px solid rgba(255,255,255,.3);
+    backdrop-filter:blur(8px);
+    color:#fff;border-radius:14px;padding:10px 14px;cursor:pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .btn:hover{ background:rgba(255,255,255,.3); }
   .btn.round{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px}
+  
   /* Top chips */
   .topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;z-index:20;flex-wrap:wrap}
   .chip{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:8px 12px;font-size:13px;margin-top:4px}
+  
   /* Overlay info box - draggable */
-  .overlay{position:absolute;left:16px;bottom:110px;z-index:15;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:10px 12px;border-radius:10px;min-width:220px;cursor:move}
+  .overlay{
+    position:absolute;left:16px;bottom:110px;z-index:15;
+    background:rgba(0,0,0,.65); /* Kontras lebih kuat */
+    border:1px solid rgba(255,255,255,.25); 
+    backdrop-filter:blur(10px); /* Blur lebih kuat */
+    padding:10px 12px;border-radius:12px;
+    min-width:220px;cursor:move;
+    opacity: 0.95; /* Sedikit transparan */
+  }
   .overlay h4{margin:0 0 6px 0;font-size:14px}
   .overlay .row{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;line-height:1.4}
-  /* Slider tinggi */
-  .height-wrap{position:absolute;left:0;right:0;bottom:96px;display:flex;justify-content:center;z-index:14}
-  .height-panel{width:min(520px,92%);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:10px 14px}
-  #tinggiRange{width:100%}
-  .value{font-weight:700}
+  
+  /* GPS Status Indicator (GPS System Enhancement 1 & 2) */
+  #gpsStatusIndicator {
+      position: absolute;
+      top: 60px; /* Di bawah chip GPS */
+      left: 12px;
+      padding: 6px 10px;
+      background: rgba(0,0,0,.5);
+      border-radius: 999px;
+      font-size: 13px;
+      z-index: 20;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.3s, color 0.3s;
+  }
+  #gpsStatusIndicator::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+  }
+  .status-low::before { background: var(--danger); }
+  .status-medium::before { background: var(--warn); }
+  .status-high::before { 
+      background: var(--accent); 
+      animation: pulse-dot 1.5s infinite; /* Animasi berdenyut */
+  }
+  @keyframes pulse-dot {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+
+  /* UI Enhancement 7: Slider gradien */
+  .height-panel{
+    width:min(520px,92%);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);
+    border-radius:16px;padding:10px 14px;
+  }
+  #tinggiRange{
+    width:100%;
+    -webkit-appearance: none;
+    background: transparent;
+  }
+  #tinggiRange::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, #22c55e, #3b82f6); /* Gradien Hijau-Biru */
+    border-radius: 4px;
+  }
+  #tinggiRange::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #fff; /* Thumb Putih */
+    cursor: pointer;
+    margin-top: -6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.4);
+  }
+
+  /* Quick options multi-select */
+  .quick{position:absolute;left:0;right:0;bottom:160px;display:flex;gap:10px;justify-content:center;z-index:13;pointer-events:none}
+  /* UI Enhancement 5: Animasi Hover Tag */
+  .quick .tag{
+    pointer-events:auto;padding:8px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.12);user-select:none;cursor:pointer;font-size:13px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .quick .tag:hover{ transform: scale(1.05); background:rgba(255,255,255,.2); }
+  .tag.on{background:var(--accent);color:#052e12;border-color:var(--accent);font-weight:700}
+  
+  /* Thumbs (UI Enhancement 6: Dihapus dari tampilan kamera) */
+  .thumbs{display:none} 
+
   /* Bottom sheet */
-  .sheet{position:fixed;left:0;right:0;bottom:0;height:80vh;background:var(--surface);border-top-left-radius:18px;border-top-right-radius:18px;box-shadow:0 -8px 32px rgba(0,0,0,.45);transform:translateY(100%);transition:.35s transform;z-index:30;display:flex;flex-direction:column}
+  /* UI Enhancement 2: Transisi lembut untuk sheet */
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;height:80vh;background:var(--surface);
+    border-top-left-radius:18px;border-top-right-radius:18px;box-shadow:0 -8px 32px rgba(0,0,0,.45);
+    transform:translateY(100%);
+    transition:.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) transform; /* Transisi Easing yang lebih baik */
+    z-index:30;display:flex;flex-direction:column
+  }
   .sheet.visible{transform:translateY(0)}
   .handle{padding:8px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
   .handle .bar{width:50px;height:5px;margin:0 auto;border-radius:3px;background:#374151}
@@ -55,28 +172,61 @@
   .card h3{margin:0 0 8px 0;font-size:16px}
   .grid-2{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:860px){.grid-2{grid-template-columns:1.2fr 1fr}}
-  /* Map */
-  #map{width:100%;height:320px;border-radius:12px}
-  /* Toast */
-  .toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:10px 12px;z-index:60;opacity:0;transform:translateY(8px);transition:.2s opacity,.2s transform}
+  
+  /* Map (Map Enhancement 2: Bayangan Peta) */
+  #map{width:100%;height:320px;border-radius:12px;box-shadow: 0 4px 12px rgba(0,0,0,.35);}
+  
+  /* Toast (Lain-lain 2: Transisi opacity) */
+  .toast{
+    position:fixed;right:14px;bottom:14px;background:#111827;color:#e5e7eb;border:1px solid #374151;
+    border-radius:10px;padding:10px 12px;z-index:60;opacity:0;transform:translateY(8px);
+    transition: opacity .25s ease-out, transform .25s ease-out; /* Transisi lebih halus */
+  }
   .toast.show{opacity:1;transform:translateY(0)}
   .progress{height:4px;background:#1f2937;border-radius:999px;overflow:hidden;margin-top:6px}
   .progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#3b82f6)}
-  /* Quick options multi-select */
-  .quick{position:absolute;left:0;right:0;bottom:160px;display:flex;gap:10px;justify-content:center;z-index:13;pointer-events:none}
-  .quick .tag{pointer-events:auto;padding:8px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);user-select:none;cursor:pointer;font-size:13px}
-  .tag.on{background:var(--accent);color:#052e12;border-color:var(--accent);font-weight:700}
-  /* Thumbs (kecil, tidak menutupi kamera) */
-  .thumbs{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:19}
-  .thumbs img{width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid rgba(255,255,255,.4)}
-  /* Form */
-  .hr{height:1px;background:#1f2937;margin:8px 0}
-  .muted{color:#94a3b8}
-  input[type="number"],input[type="text"]{width:100%;background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:10px;color:#e5e7eb}
+
+  /* Form Input (UI Enhancement 5: Efek fokus input) */
+  input[type="number"],input[type="text"]{
+    width:100%;background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:10px;color:#e5e7eb;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input[type="number"]:focus,input[type="text"]:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+    outline: none;
+  }
   label{font-size:12px;color:#9ca3af}
-  .row-flex{display:grid;grid-template-columns:1fr;gap:10px}
-  @media(min-width:500px){.row-flex{grid-template-columns:1fr 1fr}}
-  .download-links a{display:block;padding:10px 12px;border:1px solid #1f2937;border-radius:10px;text-decoration:none;color:#e5e7eb;background:#0b1220;text-align:center}
+  
+  /* Lain-lain 1: Efek Fade-in pada Review Foto */
+  #reviewFoto img {
+      opacity: 0;
+      animation: fade-in 0.5s ease-out forwards;
+  }
+  @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Map Enhancement: Animasi Pulse pada Marker Sehat & Live GPS */
+  .leaflet-pulse-icon {
+      /* Base style - akan di-override oleh L.circleMarker */
+  }
+  /* Denyut untuk Marker Sehat/Live */
+  .leaflet-pulse-icon.leaflet-marker-icon.leaflet-zoom-animated.leaflet-interactive {
+      animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+      0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); /* Warna Hijau default (Sehat) */
+      }
+      70% {
+          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+      }
+      100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+  }
 </style>
 </head>
 <body>
@@ -89,11 +239,16 @@
       <div class="chip" title="Koordinat terakhir"><span id="chipGPS">GPS: -</span></div>
       <div class="chip" title="Target harian"><span id="chipGoal">Target 100 • 0 selesai</span></div>
     </div>
+    
+    <!-- GPS System Enhancement 1: Indikator Status GPS Real-time -->
+    <div id="gpsStatusIndicator" class="status-low">Menunggu sinyal GPS...</div>
 
     <!-- Draggable overlay -->
     <div class="overlay" id="overlayInfo">
       <h4>Ringkasan Live</h4>
       <div class="row">Lokasi: <span id="ovLokasi">-</span></div>
+      <!-- GPS System Enhancement 3: Tambah Timestamp GPS -->
+      <div class="row">Waktu GPS: <span id="ovTimestamp">-</span></div>
       <div class="row">Tinggi: <span id="ovTinggi">10</span> cm</div>
       <div class="row">Jenis: <span id="ovJenis">Akasia</span></div>
       <div class="row">Health: <span id="ovHealth" class="value">-</span></div>
@@ -115,13 +270,10 @@
     <div class="quick" id="quickContainer">
       <div class="tag on" data-value="Akasia">Akasia</div>
       <div class="tag" data-value="Sengon">Sengon</div>
-      <div class="tag" data-value="Jati">Jati</div>
+      <div class="tag" data-value="Nangka">Nangka</div>
       <div class="tag" data-value="Mahoni">Mahoni</div>
       <div class="tag" data-value="Lainnya">Lainnya</div>
     </div>
-
-    <!-- Thumbnails (ringkas) -->
-    <div class="thumbs" id="thumbs"></div>
 
     <!-- Toolbar bawah -->
     <div class="toolbar">
@@ -210,6 +362,7 @@
       </div>
 
       <div class="card">
+        <!-- UI Enhancement 6: Thumbnail dipindah ke dalam sheet -->
         <h3>Preview 8 Foto Terakhir</h3>
         <div id="reviewFoto" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px"></div>
       </div>
@@ -231,50 +384,51 @@
 </div>
 
 <script>
-// ============ State ============
+// ==================== STATE GLOBAL ====================
 let data = JSON.parse(localStorage.getItem("monitoringData")||"[]");
-let lastGPS = { koordinat: "", akurasi: "" };
+// Tambah timestamp untuk EXIF dan UI
+let lastGPS = { koordinat: "", akurasi: "", timestamp: null }; 
 let goalTarget = 100;
 let map, markersLayer;
+let currentPosMarker = null; 
 let scatterChart, histChart, healthChart;
 let currentStream = null;
 let currentDeviceId = null;
 let captureCountForZip = 0;
+let gpsWatcherId = null; 
 
-// ============ DOM ============
+// ==================== DOM ELEMENTS ====================
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const btnCapture = document.getElementById('btnCapture');
 const btnGPS = document.getElementById('btnGPS');
-const btnToggleSheet = document.getElementById('btnToggleSheet');
-const sheet = document.getElementById('sheet');
-const handle = document.getElementById('handle');
 const tinggiRange = document.getElementById('tinggiRange');
 const tinggiInput = document.getElementById('tinggi');
-const tinggiValueDisplay = document.getElementById('tinggiValueDisplay');
-const thumbs = document.getElementById('thumbs');
 const ovLokasi = document.getElementById('ovLokasi');
+const ovTimestamp = document.getElementById('ovTimestamp'); 
+const chipGPS = document.getElementById('chipGPS');
+const gpsStatusIndicator = document.getElementById('gpsStatusIndicator');
+const lokasiInput = document.getElementById('lokasi');
 const ovTinggi = document.getElementById('ovTinggi');
 const ovJenis = document.getElementById('ovJenis');
 const ovHealth = document.getElementById('ovHealth');
 const ovCount = document.getElementById('ovCount');
-const chipGPS = document.getElementById('chipGPS');
 const chipGoal = document.getElementById('chipGoal');
 const jenisInput = document.getElementById('jenis');
 const tahunInput = document.getElementById('tahun');
-const lokasiInput = document.getElementById('lokasi');
 const pengawasInput = document.getElementById('pengawas');
 const vendorInput = document.getElementById('vendor');
 const kesehatanInput = document.getElementById('kesehatan');
-const statusText = document.getElementById('status');
 const appsScriptUrlInput = document.getElementById('appsScriptUrl');
 const toast = document.getElementById('toast');
 const toastMsg = document.getElementById('toastMsg');
 const toastProg = document.getElementById('toastProg');
 const overlayInfo = document.getElementById('overlayInfo');
 const reviewFoto = document.getElementById('reviewFoto');
+const tinggiValueDisplay = document.getElementById('tinggiValueDisplay');
 
-// ============ Utils ============
+
+// ==================== UTILS ====================
 const pad = (n)=> n.toString().padStart(2,'0');
 const genId = ()=>{
   const d=new Date();
@@ -287,12 +441,17 @@ function showToast(msg, progress=0){
   clearTimeout(window.__toastTO);
   window.__toastTO = setTimeout(()=> toast.classList.remove('show'), 1800);
 }
-function saveData(){ localStorage.setItem("monitoringData", JSON.stringify(data)); }
+function saveData(){ 
+  // Menyimpan data lokal
+  localStorage.setItem("monitoringData", JSON.stringify(data)); 
+}
 function safeFilename(s){ return String(s||'').replace(/[^\w.-]/g,"_"); }
 function dataURLtoBlob(dataurl){
   const arr = dataurl.split(',');
   const mime = (arr[0].match(/:(.*?);/)||[])[1]||'image/jpeg';
-  const bstr = atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+  const bstr = atob(arr[1]); 
+  let n=bstr.length; 
+  const u8=new Uint8Array(n); // FIX: Memastikan Uint8Array
   while(n--){ u8[n]=bstr.charCodeAt(n); }
   return new Blob([u8], {type:mime});
 }
@@ -303,7 +462,6 @@ function parseLatLon(str){
   if(isNaN(lat)||isNaN(lon)) return null;
   return {lat,lon};
 }
-// DMS for EXIF
 function toDMS(coord){
   const abs=Math.abs(coord);
   const deg=Math.floor(abs);
@@ -312,7 +470,8 @@ function toDMS(coord){
   return [[deg,1],[min,1],[Math.round(sec*100),100]];
 }
 
-// ============ Camera ============
+
+// ==================== CAMERA ====================
 async function listCameras(){
   if(!navigator.mediaDevices?.enumerateDevices) return;
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -322,36 +481,89 @@ async function listCameras(){
 }
 async function startCamera(deviceId){
   if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
-  const constraints = { video: { deviceId: deviceId? { exact: deviceId } : undefined, facingMode:'environment' } };
+  const constraints = { video: { deviceId: deviceId? { exact: deviceId } : undefined, facingMode:'environment' } }; 
   try{
     const s = await navigator.mediaDevices.getUserMedia(constraints);
-    currentStream = s; currentDeviceId = s.getVideoTracks()[0].getSettings().deviceId;
+    currentStream = s; 
+    currentDeviceId = s.getVideoTracks()[0].getSettings().deviceId;
     video.srcObject = s;
   }catch(e){
     showToast("Gagal akses kamera: "+(e.message||e),0);
   }
 }
 
-// ============ GPS & Compass ============
-function ambilGPS(){
-  showToast("Ambil GPS...", 0.2);
-  if(!navigator.geolocation){ showToast("Geolocation tidak didukung",0); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
+// ==================== GPS (Peningkatan Fungsi Visual) ====================
+function updateGPSUI(pos){
     const lat=pos.coords.latitude.toFixed(6);
     const lon=pos.coords.longitude.toFixed(6);
     const acc=pos.coords.accuracy.toFixed(1);
-    lastGPS = { koordinat: lat+","+lon, akurasi: acc };
+    const ts=new Date(pos.timestamp);
+    
+    lastGPS = { koordinat: lat+","+lon, akurasi: acc, timestamp: ts };
     lokasiInput.value = lastGPS.koordinat;
+    
+    const timeStr = ts.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
     chipGPS.textContent = "GPS: "+lastGPS.koordinat+" (±"+acc+"m)";
     ovLokasi.textContent = lastGPS.koordinat;
-    addMapMarker(lat,lon, "Posisi saat ini");
-    showToast("GPS siap ("+acc+"m)",1);
-  }, err=>{
-    showToast("GPS gagal: "+err.message,0);
-  }, { enableHighAccuracy:true, timeout:12000, maximumAge:0 });
+    ovTimestamp.textContent = timeStr;
+
+    // GPS System Enhancement 1: Indikator Status
+    gpsStatusIndicator.classList.remove('status-low', 'status-medium', 'status-high');
+    
+    if(acc < 10){
+        gpsStatusIndicator.textContent = "Akurasi Bagus (±<10m)";
+        gpsStatusIndicator.classList.add('status-high');
+        btnGPS.style.backgroundColor = 'var(--accent)'; 
+    } else if (acc < 50) {
+        gpsStatusIndicator.textContent = "Akurasi Sedang (±10–50m)";
+        gpsStatusIndicator.classList.add('status-medium');
+        btnGPS.style.backgroundColor = 'var(--warn)'; 
+    } else {
+        gpsStatusIndicator.textContent = "Akurasi Rendah (±>50m)";
+        gpsStatusIndicator.classList.add('status-low');
+        btnGPS.style.backgroundColor = 'var(--danger)'; 
+    }
+
+    refreshCurrentPositionMarker(lat, lon, `Posisi terbaru (±${acc}m)`);
 }
 
-// ============ Overlay drag ============
+function startGPSWatch(){
+  if(gpsWatcherId !== null){
+    navigator.geolocation.clearWatch(gpsWatcherId);
+    gpsWatcherId = null;
+  }
+  btnGPS.style.backgroundColor = 'rgba(255,255,255,.14)'; 
+  gpsStatusIndicator.textContent = "🔴 Menunggu sinyal GPS...";
+  gpsStatusIndicator.classList.add('status-low');
+
+  showToast("Memulai pengawasan GPS...", 0.2);
+  if(!navigator.geolocation){ 
+    showToast("Geolocation tidak didukung",0); 
+    chipGPS.textContent = "GPS: Gagal";
+    gpsStatusIndicator.textContent = "GPS tidak tersedia";
+    return; 
+  }
+
+  // watchPosition untuk pembaruan lokasi berkelanjutan
+  gpsWatcherId = navigator.geolocation.watchPosition(pos=>{
+    updateGPSUI(pos);
+    showToast("GPS aktif ("+pos.coords.accuracy.toFixed(1)+"m)", 1);
+  }, err=>{
+    showToast("GPS gagal: "+err.message, 0);
+    btnGPS.style.backgroundColor = 'var(--danger)';
+    chipGPS.textContent = "GPS: ERROR";
+    gpsStatusIndicator.textContent = "GPS tidak tersedia/Gagal";
+    gpsStatusIndicator.classList.add('status-low');
+    
+    // Notifikasi jika gagal karena izin
+    if(err.code === 1) { 
+      showToast("Gagal akses GPS: Izin ditolak.", 0);
+    }
+  }, { enableHighAccuracy:true, timeout:10000, maximumAge:1000 }); 
+}
+
+// ==================== OVERLAY DRAG ====================
 (function enableDrag(){
   const el = overlayInfo;
   let sx=0, sy=0, ox=0, oy=0, dragging=false;
@@ -366,7 +578,7 @@ function ambilGPS(){
   el.addEventListener('pointerup', ()=> dragging=false);
 })();
 
-// ============ Slider sync ============
+// ==================== SLIDER SYNC ====================
 function syncFromRange(){
   const v = parseInt(tinggiRange.value,10);
   tinggiInput.value = v;
@@ -386,7 +598,7 @@ tinggiRange.addEventListener('input', syncFromRange);
 tinggiInput.addEventListener('change', syncFromInput);
 syncFromInput();
 
-// ============ Quick multi-select jenis ============
+// ==================== QUICK SELECT ====================
 (function initQuick(){
   const c = document.getElementById('quickContainer');
   c.querySelectorAll('.tag').forEach(tag=>{
@@ -400,61 +612,172 @@ syncFromInput();
   jenisInput.addEventListener('input', ()=> ovJenis.textContent = jenisInput.value || '-');
 })();
 
-// ============ Bottom sheet toggle ============
+// ==================== SHEET TOGGLE ====================
 function toggleSheet(){ sheet.classList.toggle('visible'); }
-btnToggleSheet.addEventListener('click', toggleSheet);
-handle.addEventListener('click', toggleSheet);
+document.getElementById('btnToggleSheet').addEventListener('click', toggleSheet);
+document.getElementById('handle').addEventListener('click', toggleSheet);
 
-// ============ Map ============
+// ==================== MAP (Peningkatan Visual Marker) ====================
 function initMap(){
-  map = L.map('map').setView([0,110], 5);
+  map = L.map('map').setView([-2.00, 118.00], 5); 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
   markersLayer = L.layerGroup().addTo(map);
   refreshMarkers();
 }
-function addMapMarker(lat,lon, label, color="#22c55e"){
+
+// Map Enhancement 1: Marker dinamis (warna, ukuran, pulse)
+function addMapMarker(lat, lon, dataEntry){
   if(!markersLayer) return;
-  const m = L.circleMarker([lat,lon],{ radius:8, color:color, fillColor:color, fillOpacity:.8 });
-  m.addTo(markersLayer).bindPopup(label||"");
+  
+  const tinggi = dataEntry.tinggi || 10;
+  const kesehatan = dataEntry.kesehatan || 'Sehat';
+  
+  // Ukuran dinamis: min 6, max 18 (10cm=6, 300cm=18)
+  const radius = Math.min(18, Math.max(6, 6 + tinggi / 20)); 
+
+  let color = "#22c55e"; // Sehat
+  let className = '';
+
+  if (kesehatan === "Merana") {
+      color = "#f59e0b"; // Merana (Kuning)
+  } else if (kesehatan === "Mati") {
+      color = "#ef4444"; // Mati (Merah)
+  }
+  
+  if (kesehatan === "Sehat") {
+      className = 'leaflet-pulse-icon'; 
+  }
+
+  const m = L.circleMarker([lat, lon],{ 
+    radius: radius, 
+    color: color, 
+    fillColor: color, 
+    fillOpacity:.8,
+    className: className, 
+    weight: 1 
+  });
+  
+  const html = `<b>${dataEntry.jenis||'-'}</b><br>ID: ${dataEntry.id}<br>Tinggi: ${tinggi}cm<br>Health: ${kesehatan}<br>Lok: ${dataEntry.lokasi}<br><img src="${dataEntry.foto||''}" style="width:140px;margin-top:6px;border-radius:6px"/>`;
+  m.addTo(markersLayer).bindPopup(html);
 }
+
+// Marker live GPS dengan animasi berdenyut (pulse)
+function refreshCurrentPositionMarker(lat, lon, label){
+    if(!map) return;
+    if(currentPosMarker){ map.removeLayer(currentPosMarker); }
+    
+    currentPosMarker = L.circleMarker([lat,lon],{ 
+      radius: 12, 
+      color: "#3b82f6", 
+      fillColor: "#3b82f6", 
+      fillOpacity: 0.9, 
+      weight: 3,
+      className: 'leaflet-pulse-icon' // Marker Live juga pakai pulse
+    });
+    
+    currentPosMarker.addTo(map).bindPopup(`<b>${label}</b>`);
+    map.panTo([lat, lon]); 
+}
+
 function refreshMarkers(){
   if(!markersLayer) return;
-  markersLayer.clearLayers();
+  markersLayer.clearLayers(); 
+  
   data.forEach(d=>{
     const p = parseLatLon(d.lokasi);
     if(!p) return;
-    const color = d.kesehatan==="Sehat" ? "#22c55e" : (d.kesehatan==="Merana" ? "#f59e0b" : "#ef4444");
-    const html = `<b>${d.jenis||'-'}</b><br>ID: ${d.id}<br>Tinggi: ${d.tinggi}cm<br>Lok: ${d.lokasi}<br><img src="${d.foto||''}" style="width:140px;margin-top:6px;border-radius:6px"/>`;
-    addMapMarker(p.lat,p.lon, html, color);
+    addMapMarker(p.lat, p.lon, d); 
   });
+  
+  if(lastGPS.koordinat){
+     const p = parseLatLon(lastGPS.koordinat);
+     if(p) refreshCurrentPositionMarker(p.lat, p.lon, `Posisi terbaru (±${lastGPS.akurasi}m)`);
+  }
 }
-
-// ============ Charts ============
-function initCharts(){
+  
+ // ==================== CHARTS (Scatter Axis & Color) ====================
+function initCharts() {
   const ctxS = document.getElementById('chartScatter');
   const ctxH = document.getElementById('chartHist');
-  const ctxHe= document.getElementById('chartHealth');
+  const ctxHe = document.getElementById('chartHealth');
+  
   scatterChart = new Chart(ctxS, {
-    type:'scatter',
-    data:{ datasets:[{label:'Tinggi vs Tahun', data:[], pointRadius:4}] },
-    options:{ responsive:true, plugins:{legend:{display:true}}, scales:{ x:{ title:{display:true,text:'Tahun'}}, y:{ title:{display:true,text:'Tinggi (cm)'}}} }
+    type: 'scatter',
+    data: { 
+      datasets: [{
+        label: 'Tinggi vs Tahun',
+        data: [],
+        pointRadius: 6,
+        pointBorderWidth: 1
+      }]
+    },
+    options: { 
+      responsive: true, 
+      plugins: { legend: { display: true } }, 
+      scales: { 
+        x: { 
+          title: { display: true, text: 'Tahun' },
+          // 🔴 Chart Enhancement: Sumbu X hanya tahun bulat 2024–2027 (tanpa desimal)
+          type: 'linear',
+          min: 2024,
+          max: 2027,
+          ticks: { 
+            stepSize: 1,
+            callback: function(value) {
+              return Math.floor(value); // 🔴 pastikan tahun tampil bulat
+            }
+          }
+        }, 
+        y: { 
+          title: { display: true, text: 'Tinggi Tanaman (cm)' } // Label sumbu Y tetap jelas
+        }
+      }
+    }
   });
+
   histChart = new Chart(ctxH, {
-    type:'bar',
-    data:{ labels:[], datasets:[{label:'Jumlah', data:[]}] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{title:{display:true,text:'Rentang Tinggi (cm)'}}, y:{title:{display:true,text:'Count'}}} }
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Jumlah', data: [] }] },
+    options: { 
+      responsive: true, 
+      plugins: { legend: { display: false } }, 
+      scales: { 
+        x: { title: { display: true, text: 'Rentang Tinggi (cm)' } }, 
+        y: { title: { display: true, text: 'Count' } } 
+      } 
+    }
   });
+
   healthChart = new Chart(ctxHe, {
-    type:'bar',
-    data:{ labels:['Sehat','Merana','Mati'], datasets:[{label:'Jumlah', data:[0,0,0]}]},
-    options:{ responsive:true, plugins:{legend:{display:false}} }
+    type: 'bar',
+    data: { labels: ['Sehat', 'Merana', 'Mati'], datasets: [{ label: 'Jumlah', data: [0, 0, 0] }] },
+    options: { 
+      responsive: true, 
+      plugins: { legend: { display: false } } 
+    }
   });
+
   refreshCharts();
 }
+
 function refreshCharts(){
   // Scatter
-  const pts = data.filter(d=>d.tahun && d.tinggi).map(d=>({x: +d.tahun, y: +d.tinggi}));
-  scatterChart.data.datasets[0].data = pts;
+  // Chart Enhancement 3: Warna titik sesuai kesehatan
+  const scatterData = data.filter(d => d.tahun && d.tinggi).map(d => {
+    let color = '#3b82f6'; 
+    if (d.kesehatan === 'Sehat') color = 'var(--accent)';
+    else if (d.kesehatan === 'Merana') color = 'var(--warn)';
+    else if (d.kesehatan === 'Mati') color = 'var(--danger)';
+    
+    return {
+      x: +d.tahun, 
+      y: +d.tinggi, 
+      backgroundColor: color, 
+      borderColor: '#fff'
+    };
+  });
+  
+  scatterChart.data.datasets[0].data = scatterData;
   scatterChart.update();
 
   // Histogram bins
@@ -478,7 +801,54 @@ function refreshCharts(){
   healthChart.update();
 }
 
-// ============ AI HSV (simple) ============
+
+// ==================== EXIF WRITER ====================
+function insertExif(dataUrl, meta){
+  if(typeof piexif === 'undefined'){ console.warn('piexif not loaded'); return dataUrl; }
+  try{
+    const ts = meta.timestamp || new Date(); 
+    const exifTime = ts.getFullYear()+":"+pad(ts.getMonth()+1)+":"+pad(ts.getDate())+" "+pad(ts.getHours())+":"+pad(ts.getMinutes())+":"+pad(ts.getSeconds());
+    const gps = {};
+    const ll = parseLatLon(meta.koordinat||"");
+    
+    if(ll){
+      gps[piexif.GPSIFD.GPSLatitudeRef] = ll.lat<0? "S":"N";
+      gps[piexif.GPSIFD.GPSLatitude] = toDMS(ll.lat);
+      gps[piexif.GPSIFD.GPSLongitudeRef] = ll.lon<0? "W":"E";
+      gps[piexif.GPSIFD.GPSLongitude] = toDMS(ll.lon);
+      gps[piexif.GPSIFD.GPSMapDatum] = "WGS-84";
+      
+      if(meta.akurasi){
+        const dop = Math.round(parseFloat(meta.akurasi)*100); 
+        gps[piexif.GPSIFD.GPSDOP] = [dop,100];
+      }
+    }
+    
+    const comment = `ID:${meta.id}; Tinggi:${meta.tinggi}cm; Jenis:${meta.jenis}; Lokasi:${meta.koordinat}; Pengawas:${meta.pengawas||''}`;
+    const exifObj = {
+      "0th": {
+        [piexif.ImageIFD.Make]: "Monitoring_AI_v6_PRO",
+        [piexif.ImageIFD.Model]: "Web Camera",
+        [piexif.ImageIFD.Software]: "v6_PRO_UI_Enhanced",
+        [piexif.ImageIFD.DateTime]: exifTime,
+        [piexif.ImageIFD.Orientation]: 1
+      },
+      "Exif": {
+        [piexif.ExifIFD.DateTimeOriginal]: exifTime,
+        [piexif.ExifIFD.DateTimeDigitized]: exifTime,
+        [piexif.ExifIFD.UserComment]: piexif.helper.encodeText(comment)
+      },
+      "GPS": gps
+    };
+    const exifStr = piexif.dump(exifObj);
+    return piexif.insert(exifStr, dataUrl);
+  }catch(e){
+    console.warn("EXIF insert failed:", e);
+    return dataUrl;
+  }
+}
+
+// ==================== AI HSV (Simple) ====================
 function analyzeHSV(imgData){
   const {data:arr,width,height} = imgData;
   let r=0,g=0,b=0,c=0;
@@ -504,72 +874,29 @@ function analyzeHSV(imgData){
   return {h:Math.round(h), s:+s.toFixed(2), v:+v.toFixed(2), label};
 }
 
-// ============ EXIF Writer ============
-function insertExif(dataUrl, meta){
-  if(typeof piexif === 'undefined'){ console.warn('piexif not loaded'); return dataUrl; }
-  try{
-    const ts = meta.timestamp;
-    const exifTime = ts.getFullYear()+":"+pad(ts.getMonth()+1)+":"+pad(ts.getDate())+" "+pad(ts.getHours())+":"+pad(ts.getMinutes())+":"+pad(ts.getSeconds());
-    const gps = {};
-    const ll = parseLatLon(meta.koordinat||"");
-    if(ll){
-      gps[piexif.GPSIFD.GPSLatitudeRef] = ll.lat<0? "S":"N";
-      gps[piexif.GPSIFD.GPSLatitude] = toDMS(ll.lat);
-      gps[piexif.GPSIFD.GPSLongitudeRef] = ll.lon<0? "W":"E";
-      gps[piexif.GPSIFD.GPSLongitude] = toDMS(ll.lon);
-      gps[piexif.GPSIFD.GPSMapDatum] = "WGS-84";
-      if(meta.akurasi){
-        const dop = Math.max(0, Math.min(10000, Math.round(parseFloat(meta.akurasi)*100)));
-        gps[piexif.GPSIFD.GPSDOP] = [dop,100];
-      }
-    }
-    const comment = `ID:${meta.id}; Tinggi:${meta.tinggi}cm; Jenis:${meta.jenis}; Lokasi:${meta.koordinat}; Pengawas:${meta.pengawas||''}`;
-    const exifObj = {
-      "0th": {
-        [piexif.ImageIFD.Make]: "Monitoring_AI_v6_PRO",
-        [piexif.ImageIFD.Model]: "Web Camera",
-        [piexif.ImageIFD.Software]: "v6_PRO",
-        [piexif.ImageIFD.DateTime]: exifTime,
-        [piexif.ImageIFD.Orientation]: 1
-      },
-      "Exif": {
-        [piexif.ExifIFD.DateTimeOriginal]: exifTime,
-        [piexif.ExifIFD.DateTimeDigitized]: exifTime,
-        [piexif.ExifIFD.UserComment]: piexif.helper.encodeText(comment)
-      },
-      "GPS": gps
-    };
-    const exifStr = piexif.dump(exifObj);
-    return piexif.insert(exifStr, dataUrl);
-  }catch(e){
-    console.warn("EXIF insert failed:", e);
-    return dataUrl;
-  }
-}
-
-// ======= Watermark brand (ubah di sini kalau mau) =======
-let brand = "Monitoring_AI_v6_PRO";
-
-// ============ Capture Flow ============
+// ==================== CAPTURE FLOW (Async/Await) ====================
 async function capture(){
   if(!video.videoWidth){ showToast("Video belum siap",0); return; }
+  
+  if(!lastGPS.koordinat){
+    showToast("GPS belum terkunci. Ambil foto tanpa koordinat akurat.", 0);
+  }
+
   const id = genId();
   const tinggi = parseInt(tinggiInput.value||tinggiRange.value,10) || 10;
   if(tinggi<=0){ showToast("Tinggi tidak valid",0); return; }
 
-  // Draw frame
+  // Draw frame & AI HSV
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-
-  // AI HSV
   const sample = ctx.getImageData(0,0,canvas.width,canvas.height);
   const hsv = analyzeHSV(sample);
   kesehatanInput.value = kesehatanInput.value || hsv.label;
   ovHealth.textContent = hsv.label;
 
-  // Watermark (tanpa HCV detail, sesuai permintaan sebelumnya)
+  // Watermark
   const margin=20, lh=Math.max(18, Math.round(canvas.height*0.022));
   ctx.font = `bold ${lh}px sans-serif`;
   ctx.fillStyle = 'rgba(255,255,255,.96)';
@@ -589,7 +916,7 @@ async function capture(){
     ctx.strokeText(t, margin, y);
     ctx.fillText(t, margin, y);
   });
-  // Brand pojok atas
+  const brand = "Monitoring_AI_v6_PRO_UI_Enhanced";
   const w = ctx.measureText(brand).width;
   ctx.strokeText(brand, canvas.width - margin - w, margin+lh);
   ctx.fillText(brand, canvas.width - margin - w, margin+lh);
@@ -599,7 +926,7 @@ async function capture(){
 
   // Insert EXIF
   dataUrl = insertExif(dataUrl, {
-    id, tinggi, jenis: jenisInput.value, koordinat: lastGPS.koordinat, akurasi: lastGPS.akurasi, pengawas: pengawasInput.value, timestamp: new Date()
+    id, tinggi, jenis: jenisInput.value, koordinat: lastGPS.koordinat, akurasi: lastGPS.akurasi, pengawas: pengawasInput.value, timestamp: lastGPS.timestamp || new Date()
   });
 
   // Auto download foto
@@ -616,22 +943,10 @@ async function capture(){
 
   // Save entry
   const entry = {
-    id,
-    tanggal,
-    lokasi: lokasiInput.value||lastGPS.koordinat||"",
-    pekerjaan: "",
-    tahun: tahunInput.value||"",
-    jenis: jenisInput.value||"",
-    tim: "",
-    tinggi,
-    kesehatan: kesehatanInput.value||hsv.label,
-    koordinat: lastGPS.koordinat||"",
-    akurasi: lastGPS.akurasi||"",
-    x: parseLatLon(lastGPS.koordinat||"")?.lon || "",
-    y: parseLatLon(lastGPS.koordinat||"")?.lat || "",
-    pengawas: pengawasInput.value||"",
-    vendor: vendorInput.value||"",
-    foto: dataUrl
+    id, tanggal, lokasi: lokasiInput.value||lastGPS.koordinat||"", pekerjaan: "", tahun: tahunInput.value||"", jenis: jenisInput.value||"", tim: "", tinggi,
+    kesehatan: kesehatanInput.value||hsv.label, koordinat: lastGPS.koordinat||"", akurasi: lastGPS.akurasi||"",
+    x: parseLatLon(lastGPS.koordinat||"")?.lon || "", y: parseLatLon(lastGPS.koordinat||"")?.lat || "",
+    pengawas: pengawasInput.value||"", vendor: vendorInput.value||"", foto: dataUrl 
   };
   data.push(entry);
   saveData();
@@ -639,7 +954,6 @@ async function capture(){
   chipGoal.textContent = `Target ${goalTarget} • ${data.length} selesai`;
 
   // Update UI
-  addThumb(dataUrl);
   refreshMarkers();
   refreshCharts();
   renderReview();
@@ -647,70 +961,65 @@ async function capture(){
   if(navigator.vibrate) navigator.vibrate(30);
   showToast("Foto tersimpan",1);
 
-  // Auto upload ke Spreadsheet (jika URL terisi)
+  // Auto upload
   const url = (appsScriptUrlInput.value||"").trim();
   if(url){
+    await uploadToAppsScript(entry, url); 
+  }
+
+  // Auto ZIP
+  captureCountForZip++;
+  if(captureCountForZip % 10 === 0){
+    await autoZipNow();
+  }
+}
+
+// ==================== UPLOAD HELPER ====================
+async function uploadToAppsScript(entry, url){
     try{
-      await fetch(url, {
-        method:'POST',
-        mode:'no-cors',
-        body: JSON.stringify({
+        const payload = {
           ID: entry.id, Tanggal: entry.tanggal, Lokasi: entry.lokasi, Pekerjaan: entry.pekerjaan, Tinggi: entry.tinggi,
           Koordinat: entry.koordinat, X: entry.x, Y: entry.y, Tanaman: entry.jenis, "Tahun Tanam": entry.tahun,
           Pengawas: entry.pengawas, Vendor: entry.vendor, Gambar: entry.foto,
           Gambar_Nama_File: `Montana V2_Images/Gambar Montana (${entry.id}).jpg`, LINK:""
-        })
-      });
-      showToast("📤 Data terkirim (Apps Script)",1);
+        };
+        await fetch(url, {
+          method:'POST',
+          body: JSON.stringify(payload),
+          headers: {'Content-Type': 'text/plain'}
+        });
+        showToast("📤 Data terkirim (Apps Script)",1);
     }catch(e){
       console.warn("Upload gagal:", e);
       showToast("Upload gagal (check Apps Script)",0);
     }
-  }
+}
 
-  // Auto ZIP setiap 10 foto
-  captureCountForZip++;
-  if(captureCountForZip % 10 === 0){
-    autoZipNow();
-  }
-}
-function addThumb(src){
-  const img = new Image();
-  img.src = src;
-  thumbs.prepend(img);
-  while(thumbs.children.length>5){ thumbs.removeChild(thumbs.lastChild); }
-}
+// ==================== THUMBNAIL & REVIEW ====================
 function renderReview(){
   reviewFoto.innerHTML = '';
-  data.slice(-8).reverse().forEach(d=>{
+  // Batasi 8 foto terakhir
+  data.slice(-8).reverse().forEach((d, index)=>{
     const img=document.createElement('img');
     img.src=d.foto||'';
     img.style.width='100%'; img.style.height='90px'; img.style.objectFit='cover'; img.style.borderRadius='8px';
+    // Tambahkan delay untuk efek fade-in yang berurutan
+    img.style.animationDelay = `${index * 0.05}s`; 
     reviewFoto.appendChild(img);
   });
 }
 
-// ============ Upload (Apps Script) ============
+// ==================== UPLOAD LAST (Tombol Manual) ====================
 async function uploadLast(){
   if(!data.length){ showToast("Belum ada data",0); return; }
   const last = data[data.length-1];
   const url = (appsScriptUrlInput.value||"").trim();
   if(!url){ showToast("Apps Script URL kosong",0); return; }
   showToast("Mengirim...", .3);
-  try{
-    const payload = {
-      ID: last.id, Tanggal: last.tanggal, Lokasi: last.lokasi, Pekerjaan: last.pekerjaan, Tinggi: last.tinggi,
-      Koordinat: last.koordinat, X: last.x, Y: last.y, Tanaman: last.jenis, "Tahun Tanam": last.tahun,
-      Pengawas: last.pengawas, Vendor: last.vendor, Gambar: last.foto, Gambar_Nama_File: `Montana V2_Images/Gambar Montana (${last.id}).jpg`, LINK:""
-    };
-    await fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify(payload)});
-    showToast("Terkirim (no-cors)",1);
-  }catch(e){
-    showToast("Gagal kirim: "+(e.message||e),0);
-  }
+  await uploadToAppsScript(last, url);
 }
 
-// ============ Export CSV & ZIP ============
+// ==================== EXPORT CSV & ZIP ====================
 function buildCSV(){
   let csv = "ID,Tanggal,Lokasi,Tinggi,Koordinat,X,Y,Jenis,Tahun,Pengawas,Vendor,Kesehatan,Akurasi\n";
   data.forEach(d=>{
@@ -726,29 +1035,31 @@ function exportCSV(){
 }
 async function exportZIP(filename='monitoring_images.zip'){
   if(!data.length){ showToast("Tidak ada data",0); return; }
+  if(typeof JSZip === 'undefined'){ showToast("Error: JSZip belum dimuat.", 0); return; }
   const zip = new JSZip();
   const csv = buildCSV();
   data.forEach((d,i)=>{
     if(d.foto){
-      const b64 = (d.foto.split(',')[1]||'');
+      const b64 = (d.foto.split(',')[1]||''); 
       if(b64) zip.file(`images/foto_${i+1}_${safeFilename(d.id)}.jpg`, b64, {base64:true});
     }
   });
   zip.file("data.csv", csv);
-  const blob = await zip.generateAsync({type:'blob'});
+  const blob = await zip.generateAsync({type:'blob', compression: "DEFLATE"}); 
   saveAs(blob, filename);
   showToast("ZIP diunduh",1);
 }
 async function autoZipNow(){
+  showToast("Batch foto ke-"+Math.ceil(data.length/10)+" siap diunduh (ZIP)", .6);
   await exportZIP(`monitoring_batch_${Math.ceil(data.length/10)}.zip`);
 }
 
-// ============ Events ============
+// ==================== EVENTS ====================
 btnGPS.addEventListener('click', async ()=>{
   if(DeviceOrientationEvent && DeviceOrientationEvent.requestPermission){
     try{ await DeviceOrientationEvent.requestPermission(); }catch(e){}
   }
-  ambilGPS();
+  startGPSWatch(); 
 });
 btnCapture.addEventListener('click', capture);
 document.addEventListener('keydown', (e)=>{ if(e.key==="Enter") capture(); });
@@ -758,22 +1069,27 @@ document.getElementById('btnExportZIP').addEventListener('click', ()=>exportZIP(
 document.getElementById('dlCSV').addEventListener('click', (e)=>{e.preventDefault(); exportCSV();});
 document.getElementById('dlZIP').addEventListener('click', (e)=>{e.preventDefault(); exportZIP();});
 
-// ============ Init ============
+// ==================== INIT ====================
 (async function init(){
   try{
     await listCameras();
     initMap();
     initCharts();
+    
     ovCount.textContent = data.length;
     chipGoal.textContent = `Target ${goalTarget} • ${data.length} selesai`;
+    
     // Restore Apps Script URL
     const savedUrl = localStorage.getItem('appsScriptUrl')||"";
     if(!savedUrl && appsScriptUrlInput.value){ localStorage.setItem('appsScriptUrl', appsScriptUrlInput.value); }
     else if(savedUrl){ appsScriptUrlInput.value = savedUrl; }
     appsScriptUrlInput.addEventListener('input', ()=> localStorage.setItem('appsScriptUrl', appsScriptUrlInput.value||""));
     renderReview();
+
+    // MEMULAI GPS SECARA OTOMATIS SAAT APLIKASI DIMUAT
+    startGPSWatch(); 
   }catch(e){
-    console.error(e);
+    console.error("Kesalahan saat inisialisasi:", e);
   }
 })();
 </script>
